@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: Event Ledger API
+  description: API for managing financial transaction events with idempotency support
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: Events
+    description: Event management operations
+  - name: Accounts
+    description: Account balance operations
+
+paths:
+  /events:
+    post:
+      tags:
+        - Events
+      operationId: submitEvent
+      summary: Submit a transaction event
+      description: Submit a new event with idempotency support
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '200':
+          description: Duplicate event - returning existing event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Events
+      operationId: getEventsByAccount
+      summary: List events for an account
+      parameters:
+        - name: account
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Events retrieved successfully
+
+  /events/{id}:
+    get:
+      tags:
+        - Events
+      operationId: getEventById
+      summary: Get event by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event found
+        '404':
+          description: Event not found
+
+  /accounts/{accountId}/balance:
+    get:
+      tags:
+        - Accounts
+      operationId: getAccountBalance
+      summary: Get account balance
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Balance retrieved successfully
+
+components:
+  schemas:
+    EventRequest:
+      type: object
+      required:
+        - eventId
+        - accountId
+        - type
+        - amount
+        - currency
+        - eventTimestamp
+      properties:
+        eventId:
+          type: string
+        accountId:
+          type: string
+        type:
+          type: string
+          enum: [CREDIT, DEBIT]
+        amount:
+          type: number
+        currency:
+          type: string
+        eventTimestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    EventResponse:
+      type: object
+      properties:
+        eventId:
+          type: string
+        accountId:
+          type: string
+        type:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        eventTimestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+        receivedAt:
+          type: string
+          format: date-time
+
+    BalanceResponse:
+      type: object
+      properties:
+        accountId:
+          type: string
+        balance:
+          type: number
+        currency:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        errorCode:
+          type: string
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
