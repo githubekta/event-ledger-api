@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  account-service:
+    build: ./account-service
+    container_name: account-service
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  event-gateway-service:
+    build: ./event-gateway-service
+    container_name: event-gateway-service
+    depends_on:
+      account-service:
+        condition: service_healthy
+    environment:
+      ACCOUNT_SERVICE_BASE_URL: http://account-service:8081
+    ports:
+      - "8080:8080"
+
